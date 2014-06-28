@@ -1,4 +1,4 @@
 logstash-configs
 ================
 
-Various logstash configs
+logstash agent -f examples.cong

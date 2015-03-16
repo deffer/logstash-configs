@@ -1,0 +1,31 @@
+= Logstash configs
+
+Various logstash configs to copy-paste from.
+To run logstash with new config
+
+ bin> logstash agent -t -f c:/apps/logstash/logstash.conf  -- to test configuration
+ bin> logstash agent -f c:/apps/logstash/logstash.conf
+
+== Parsing geonames files
+
+ geonames_parse.conf
+
+Parse Geonames format file and push content into elasticsearch under index name `geonames`. This can be used later to `enrich` you logs/data with location information - see `geonames_enrich.conf`. Each entry uses original Geonames id, which will allow overriding entries instead of adding new ones every time file is consumed.
+
+Due to logstash bugs/features/limitation this config is a bit longer than it could ideally be. One problem is related to logstash not dealing with escape characters in many places. Particular issue: city names in the Geonames file have unescaped double quote in them, which messes with `csv` filter I am using to parse the file. One solution is to configure `csv` filter to use different quote character - `quote_char => "\x00"` (a general recommendation because `\x00` should never occur in UTF-8). However this does not work, causing `csv` filter to complain about `quote_char` being string instead of single character. The other option I tried is to escape double quotes (simply replace all `"` with `\"` because Geonames format is so simple) before passing it to `csv`.
+
+ mutate {
+   gsub => ["message", "\"", "\\\"",   "\"", "\\"",   "\"", '"', ...] // none works
+ }
+
+At the end I decided to replace `"` with `?` hoping it never occurs in Geonames files (the '@' char may work aswell). After parsing its replaced back. Similar problem with configuring different separator for `csv` filter - escaping does not work and `separator => "\t"` fails. The trick is to use actual `tab` character.
+
+ csv {
+   separator => "	"
+ }
+
+== Using geonames index to enrich you data
+
+ geonames_enrich.conf
+ 
+My intention here is for each incoming entry I query `geonames` index for the same state code and city name and add latitude/longitude from information from the result to original message/event. The problem here is that existing `elasticsearch` *filter* is intended for querying previous events therefore it does not support setting index name and instead it performs search across the whole cluster. The other, bigger problem, is that there is no control over how to handle empty result or list of results. Currently `elasticsearch` filter fails if it cant find a corresponding geoname entry, or uses first result if query returned a list. Further, because city names are tokenized and analyzed by default, there is no way (without additionally configuring Geonames index) to query for `exact match`, resulting it `Los Angeles` query returning both `Los Angeles` and `East Los Angeles`. Because score of exact match is slightly higher and filter is using first entry, at the end it works, however its not something to be used in production.

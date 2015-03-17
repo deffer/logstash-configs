@@ -25,10 +25,10 @@ Parse http://www.geonames.org[Geonames format] file (http://download.geonames.or
  }
 
 
-Due to logstash issues this config is a bit longer than it should ideally be. One problem is related to logstash not dealing with escape characters properly. Particular issue: city names in the Geonames file have unescaped double quote in them, which messes with `csv` filter I am using to parse the file. One solution is to configure `csv` filter to use different quote character - `quote_char => "\x00"` (a general recommendation because `\x00` should never occur in UTF-8). However this does not work, causing `csv` filter to complain about `quote_char` being string instead of single character. The other option I tried is to escape double quotes (simply replace all `"` with `\"` because Geonames format is so simple) before passing it to `csv`.
+Due to logstash issues, this config is a bit longer than it should ideally be. One problem is related to logstash https://logstash.jira.com/browse/LOGSTASH-1776[not supporting escape characters in config file]. Particular issue: city names in the Geonames file have unescaped double quote in them, which messes with `csv` filter which I am using to parse the file. Usual solution is to configure `csv` filter to use different quote character - `quote_char => "\x00"` (a general recommendation because `\x00` should never occur in UTF-8). However this does not work, causing `csv` filter to complain about `quote_char` being string instead of single character. The other option I tried is to escape double quotes (simply replace all `"` with `\"` because Geonames format is so simple) before passing it to `csv`. Unfortunately, while search string is converted to regex, https://logstash.jira.com/browse/LOGSTASH-985[replace string isnt] and due to the issue above it gets double escaped.
 
  mutate {
-   gsub => ["message", "\"", "\\\"",   "\"", "\\"",   "\"", '"', ...] // none works
+   gsub => ["message", "\"", "\\\"",   "\"", "\\"",   "\"", '"', '"', '\"'...] // none works
  }
 
 At the end I decided to replace `"` with `?` hoping it never occurs in Geonames files (the '@' char may work aswell). After parsing with `csv` original double qoutes are put back. 
@@ -46,7 +46,7 @@ Similar problem with configuring different separator for `csv` filter - escaping
 My intention here is for each incoming entry I query `geonames` index for the same state code and city name and add latitude/longitude information from the result to original message/event. The problem here is that existing `elasticsearch` *filter* is intended for querying previous events therefore it does not support setting index name and instead it performs search across the whole cluster. 
 The other, bigger problem, is that there is no control over how to handle empty result or list of results. Currently `elasticsearch` filter fails if it cant find a corresponding geoname entry, or uses first result if query returned a list. 
 Further, because city names are tokenized and analyzed by default, there is no way (without additionally configuring Geonames index) to query for `exact match`, resulting in `Los Angeles` query returning both `Los Angeles` and `East Los Angeles`. Because score of exact match is slightly higher and filter is using first entry, this particular example works. 
-Unfortunately, due to issues with escape characters, search query which supposed to be in double quotes ends up double escaped and will match text which does not neccessarily have all tokens in it. For instance if there is no `Oak Brook` entry in the geonames index, query will return a list cities that have `Oak` *or* `Brook` in it. Filter will pick first entry resulting in incorrect location assigned to input.
+Unfortunately, due to issues with not supported escape characters, search query which need to enclose search terms in double quotes, ends up double escaped and will match text which does not neccessarily have all tokens in it. For instance if there is no `Oak Brook` entry in the geonames index, query will return a list cities that have `Oak` *or* `Brook` in it. Filter will pick first entry resulting in incorrect location assigned to input.
 
 Example of the result:
 

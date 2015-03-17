@@ -25,7 +25,7 @@ Parse http://www.geonames.org[Geonames format] file (http://download.geonames.or
  }
 
 
-Due to logstash [line-through]bugs features this config is a bit longer than it should ideally be. One problem is related to logstash not dealing with escape characters properly. Particular issue: city names in the Geonames file have unescaped double quote in them, which messes with `csv` filter I am using to parse the file. One solution is to configure `csv` filter to use different quote character - `quote_char => "\x00"` (a general recommendation because `\x00` should never occur in UTF-8). However this does not work, causing `csv` filter to complain about `quote_char` being string instead of single character. The other option I tried is to escape double quotes (simply replace all `"` with `\"` because Geonames format is so simple) before passing it to `csv`.
+Due to logstash issues this config is a bit longer than it should ideally be. One problem is related to logstash not dealing with escape characters properly. Particular issue: city names in the Geonames file have unescaped double quote in them, which messes with `csv` filter I am using to parse the file. One solution is to configure `csv` filter to use different quote character - `quote_char => "\x00"` (a general recommendation because `\x00` should never occur in UTF-8). However this does not work, causing `csv` filter to complain about `quote_char` being string instead of single character. The other option I tried is to escape double quotes (simply replace all `"` with `\"` because Geonames format is so simple) before passing it to `csv`.
 
  mutate {
    gsub => ["message", "\"", "\\\"",   "\"", "\\"",   "\"", '"', ...] // none works

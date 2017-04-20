@@ -1,0 +1,19 @@
+= Logstash configs of University API platform
+
+This includes two sets of configs used in the University API and Integration platform setup. One set is for capturing logs from java APIs, and teh other set is for capturing logs from Kubernetes platform running Mule application, Kafka and Zookeper. Both sets include filebeat configuration which is used ship log files pre-parsed and pre-tagged to teh logstash.
+
+== Java logs
+
+Parses log files in the default SpringBoot format. Additionally, detects if log line contains our custom metrics logs and will parse and tag them accordingly.
+
+== Kubernetes platform logs
+
+Filebeat will ship logs from different locations, tagged by the source:
+
+* Mule application logs
+* Kafka logs
+* Zookeper logs
+* JMX stats of any of these
+
+Additionally, JournalD logs of some core kube services are forwarded to logstash on a aseparate port
+

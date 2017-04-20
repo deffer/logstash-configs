@@ -1,0 +1,22 @@
+
+filebeat.prospectors:
+
+- input_type: log
+  fields_under_root: true
+
+  paths:
+    - /var/log/apis/*/*.log
+  multiline:
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+          #pattern: '^[A-Z]*( )+[0-9]{4}-[0-9]{2}-[0-9]{2}'
+          negate: true
+          match: after
+  fields:
+          source_type: java-api
+          api_env: dev
+
+output.logstash:
+
+  hosts: ["myhost:5044"]
+
+

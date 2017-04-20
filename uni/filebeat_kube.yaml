@@ -1,0 +1,127 @@
+shipper:
+  fields_under_root: true
+
+filebeat:
+  registry_file: ${FB_DATA_PATH}/registry
+  #config_dir: (set to additional config files)
+
+  prospectors:
+    # Mule App Prospector
+    -
+      paths:
+        - "/logs/mule/*/logs/*.log"
+      # Type to be published in the 'type' field.
+      input_type: log
+      fields_under_root: true
+      fields:
+          source_type: mule_app
+          node_name: ${NODE_NAME}
+          env_name: ${ENV_NAME}
+      # document_type: mule_apps
+      # exclude_lines: ['^DBG']
+      # include_lines: ["^ERR", "^WARN"]
+      exclude_files: ['mule_ee.log', 'mule-domain-default.log', 'mule\-domain\-default.log']
+      multiline:
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+          negate: true
+          match: after
+
+    # Mule Runtime Prospector
+    -
+      paths:
+        - "/logs/mule/*/logs/mule_ee.log"
+      input_type: log
+      fields_under_root: true
+      fields:
+          source_type: mule_runtime
+          node_name: ${NODE_NAME}
+          env_name: ${ENV_NAME}
+      multiline:
+          pattern: '^[A-Z]*( )+[0-9]{4}-[0-9]{2}-[0-9]{2}'
+          negate: true
+          match: after
+
+    #Kafka Logs Prospector
+    -
+      paths:
+        - "/logs/kafka/logs/server.log"
+      input_type: log
+      fields_under_root: true
+      fields:
+          source_type: kafka
+          node_name: ${NODE_NAME}
+          env_name: ${ENV_NAME}
+      multiline:
+          pattern: '^\[[0-9]{4}-[0-9]{2}-[0-9]{2}'
+          negate: true
+          match: after
+
+    #Zookeeper Logs Prospector
+    -
+      paths:
+        - "/logs/zookeeper/logs/zookeeper.log"
+      input_type: log
+      fields_under_root: true
+      fields:
+          source_type: zookeeper
+          node_name: ${NODE_NAME}
+          env_name: ${ENV_NAME}
+      multiline:
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+          negate: true
+          match: after
+
+    #JMX Prospector - Mule
+    -
+      paths:
+        - "/logs/mule/*/logs/JMX*.log"
+      input_type: stats
+      fields_under_root: true
+      fields:
+          source_type: jmx
+          node_name: ${NODE_NAME}
+          env_name: ${ENV_NAME}
+      multiline:
+          pattern: '^\n'
+          negate: true
+          match: after
+
+    #JMX Prospector - Other
+    -
+      paths:
+        - "/logs/*/jmx/JMX*.log"
+      input_type: stats
+      fields_under_root: true
+      fields:
+          source_type: jmx
+          node_name: ${NODE_NAME}
+          env_name: ${ENV_NAME}
+      multiline:
+          pattern: '^\n'
+          negate: true
+          match: after
+
+
+output:
+  logstash:
+      hosts: ["${LOGSTASH_SERVICE_HOST:logstash}:${LOGSTASH_SERVICE_PORT}"]     
+      tls:
+#          certificate_authorities: ["/etc/ca.crt"]
+
+  file:
+      path: /var/log/filebeat
+      filename: fb-output.out
+      rotate_every_kb: 1000
+      number_of_files: 7
+
+logging:
+  level: ${FB_LOG_LEVEL:warning}
+  to_files: true
+  to_syslog: false
+  metrics:
+      enabled: true
+  files:
+      path: /var/log/filebeat
+      name: filebeat.log
+      rotateeverybytes: 10485760
+      keepfiles: 7

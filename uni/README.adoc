@@ -15,5 +15,30 @@ Filebeat will ship logs from different locations, tagged by the source:
 * Zookeper logs
 * JMX stats of any of these
 
-Additionally, JournalD logs of some core kube services are forwarded to logstash on a aseparate port
+Additionally, JournalD logs of few core kube services are forwarded to logstash on a separate port. Below is the example of configuring this:
 
+ sudo vi /etc/systemd/system/log-kubelet.service
+
+With the following content
+
+ [Unit]
+ Description=JournalD forwarder to Logstash
+ After=journald.target
+  
+  
+ [Service]
+ Restart=always
+ RestartSec=10s
+ ExecStart=/bin/sh -c "/usr/bin/journalctl -o short-iso -S now -f -u kube-proxy -u kubelet | ncat mulelogprd01.its.auckland.ac.nz 7443"
+ Type=simple
+  
+  
+ [Install]
+ WantedBy=default.target 
+
+Then start and enable the service
+
+ sudo systemctl daemon-reload
+ sudo systemctl enable log-kubelet
+ sudo systemctl start log-kubelet
+ sudo systemctl status log-kubelet

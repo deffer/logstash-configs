@@ -25,13 +25,11 @@ With the following content
  Description=JournalD forwarder to Logstash
  After=journald.target
   
-  
  [Service]
  Restart=always
  RestartSec=10s
- ExecStart=/bin/sh -c "/usr/bin/journalctl -o short-iso -S now -f -u kube-proxy -u kubelet | ncat mulelogprd01.its.auckland.ac.nz 7443"
+ ExecStart=/bin/sh -c "/usr/bin/journalctl -o short-iso -S now -f -u kube-proxy -u kubelet | ncat logs-host.its.auckland.ac.nz 7443"
  Type=simple
-  
   
  [Install]
  WantedBy=default.target 

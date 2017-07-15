@@ -1,6 +1,6 @@
 = Logstash configs of University API platform
 
-This includes two sets of configs used in the University API and Integration platform setup. One set is for capturing logs from java APIs, and teh other set is for capturing logs from Kubernetes platform running Mule application, Kafka and Zookeper. Both sets include filebeat configuration which is used ship log files pre-parsed and pre-tagged to teh logstash.
+This includes three sets of configs used in the University API and Integration platform setup. One set is for capturing logs from java APIs, the other set is for capturing logs from Kubernetes platform running Mule application, Kafka and Zookeper, and the third set is for shipping logs of Api Gateway - Kong. All sets include filebeat configuration which is used ship log files pre-parsed and pre-tagged to the logstash.
 
 == Java logs
 
@@ -14,6 +14,7 @@ Filebeat will ship logs from different locations, tagged by the source:
 * Kafka logs
 * Zookeper logs
 * JMX stats of any of these
+
 
 Additionally, JournalD logs of few core kube services are forwarded to logstash on a separate port. Below is the example of configuring this:
 
@@ -40,3 +41,11 @@ Then start and enable the service
  sudo systemctl enable log-kubelet
  sudo systemctl start log-kubelet
  sudo systemctl status log-kubelet
+
+== Kong logs
+
+Kong is configured to write admin (port 8001) and access (port 8000) logs into separate files. Filebeat will use different *source_type* 
+to indicate type of logs. Additionally some of the across-cluster communication is skipped.
+
+Logstash is parsing both logs, extracting first part of url (matches API name in most of the cases). 
+A lot of logs are our regular health checks, which logstash will tag accordingly.
